@@ -1,8 +1,11 @@
 import os
 import shutil
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import PyPDF2
 from tqdm import tqdm
+import concurrent.futures
+import multiprocessing
+import threading
 
 def is_valid_pdf_with_content(file_path: str) -> bool:
     """
@@ -46,6 +49,41 @@ def get_folder_list(source_dir: str) -> List[str]:
             folder_list.append(os.path.join(root, dir))
     return folder_list
 
+def process_pdf(args: Tuple[str, str, str, threading.Event, threading.Lock, List[int]]) -> Optional[str]:
+    """
+    Process a single PDF file.
+
+    Args:
+        args (Tuple[str, str, str, threading.Event, threading.Lock, List[int]]): 
+            A tuple containing (file, folder, output_dir, stop_event, lock, copied_files).
+
+    Returns:
+        Optional[str]: The destination path if the file was copied, None otherwise.
+    """
+    file, folder, output_dir, stop_event, lock, copied_files = args
+    if stop_event.is_set():
+        return None
+
+    source_path = os.path.join(folder, file)
+    
+    if is_valid_pdf_with_content(source_path):
+        dest_path = os.path.join(output_dir, file)
+        
+        # Handle duplicate filenames
+        file_counter = 1
+        while os.path.exists(dest_path):
+            name, ext = os.path.splitext(file)
+            dest_path = os.path.join(output_dir, f"{name}_{file_counter}{ext}")
+            file_counter += 1
+        
+        # Copy the PDF file
+        shutil.copy2(source_path, dest_path)
+        with lock:
+            copied_files[0] += 1
+        return dest_path
+    else:
+        return None
+
 def collate_pdfs(source_dir: str, output_dir: str, max_files: Optional[int] = None) -> None:
     """
     Collate valid PDF files with content from the source directory and its subdirectories into the output directory.
@@ -63,53 +101,51 @@ def collate_pdfs(source_dir: str, output_dir: str, max_files: Optional[int] = No
         # Ensure the output directory exists
         os.makedirs(output_dir, exist_ok=True)
 
-        copied_files = 0
         folder_list = get_folder_list(source_dir)
-
+        
         # Create a progress bar for folders
-        with tqdm(total=len(folder_list), desc="Processing folders", unit="folder") as pbar:
+        with tqdm(total=len(folder_list), desc="Scanning folders", unit="folder") as folder_pbar:
+            pdf_files = []
             for folder in folder_list:
-                if max_files is not None and copied_files >= max_files:
-                    print(f"\nReached the maximum number of files ({max_files}). Stopping the process.")
+                folder_pdf_files = [(file, folder, output_dir) for file in os.listdir(folder) if file.lower().endswith(".pdf")]
+                pdf_files.extend(folder_pdf_files)
+                folder_pbar.update(1)
+                
+                if max_files and len(pdf_files) >= max_files:
+                    pdf_files = pdf_files[:max_files]
                     break
 
-                for file in os.listdir(folder):
-                    if file.lower().endswith(".pdf"):
-                        source_path = os.path.join(folder, file)
-                        
-                        # Check if the PDF is valid and has content
-                        if is_valid_pdf_with_content(source_path):
-                            dest_path = os.path.join(output_dir, file)
-                            
-                            # Handle duplicate filenames
-                            counter = 1
-                            while os.path.exists(dest_path):
-                                name, ext = os.path.splitext(file)
-                                dest_path = os.path.join(output_dir, f"{name}_{counter}{ext}")
-                                counter += 1
-                            
-                            # Copy the PDF file
-                            shutil.copy2(source_path, dest_path)
-                            copied_files += 1
-                            print(f"\nCopied ({copied_files}): {source_path} -> {dest_path}")
+        tqdm.write(f"Found {len(pdf_files)} PDF files to process.")
 
-                            if max_files is not None and copied_files >= max_files:
-                                break
-                        else:
-                            print(f"\nSkipped invalid or empty PDF: {source_path}")
+        # Get the number of CPU cores
+        max_workers = multiprocessing.cpu_count()
 
-                pbar.update(1)
+        stop_event = threading.Event()
+        lock = threading.Lock()
+        copied_files = [0]  # Use a list to make it mutable
 
-        print(f"\nCopied {copied_files} files. Process complete.")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(process_pdf, (*args, stop_event, lock, copied_files)) for args in pdf_files]
+            
+            with tqdm(total=len(pdf_files), desc="Copying PDFs", unit="file") as pbar:
+                for future in concurrent.futures.as_completed(futures):
+                    result = future.result()
+                    if result:
+                        tqdm.write(f"Copied ({copied_files[0]}): {result}")
+                    else:
+                        tqdm.write(f"Skipped invalid or empty PDF")
+                    pbar.update(1)
+
+        tqdm.write(f"\nProcess complete. Copied {copied_files[0]} files to '{output_dir}'")
 
     except FileNotFoundError as e:
-        print(f"Error: The source directory '{source_dir}' was not found.")
+        tqdm.write(f"Error: The source directory '{source_dir}' was not found.")
         raise e
     except PermissionError as e:
-        print(f"Error: Permission denied when accessing files or directories.")
+        tqdm.write(f"Error: Permission denied when accessing files or directories.")
         raise e
     except Exception as e:
-        print(f"An unexpected error occurred: {str(e)}")
+        tqdm.write(f"An unexpected error occurred: {str(e)}")
         raise e
 
 def main() -> None:

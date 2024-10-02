@@ -49,18 +49,18 @@ def get_folder_list(source_dir: str) -> List[str]:
             folder_list.append(os.path.join(root, dir))
     return folder_list
 
-def process_pdf(args: Tuple[str, str, str, threading.Event, threading.Lock, List[int]]) -> Optional[str]:
+def process_pdf(args: Tuple[str, str, str, threading.Event, threading.Lock, List[int], tqdm]) -> Optional[str]:
     """
     Process a single PDF file.
 
     Args:
-        args (Tuple[str, str, str, threading.Event, threading.Lock, List[int]]): 
-            A tuple containing (file, folder, output_dir, stop_event, lock, copied_files).
+        args (Tuple[str, str, str, threading.Event, threading.Lock, List[int], tqdm]): 
+            A tuple containing (file, folder, output_dir, stop_event, lock, copied_files, process_pbar).
 
     Returns:
         Optional[str]: The destination path if the file was copied, None otherwise.
     """
-    file, folder, output_dir, stop_event, lock, copied_files = args
+    file, folder, output_dir, stop_event, lock, copied_files, process_pbar = args
     if stop_event.is_set():
         return None
 
@@ -80,8 +80,12 @@ def process_pdf(args: Tuple[str, str, str, threading.Event, threading.Lock, List
         shutil.copy2(source_path, dest_path)
         with lock:
             copied_files[0] += 1
+            process_pbar.update(1)
+            process_pbar.set_description(f"Processing and copying PDFs (Copied: {copied_files[0]})")
         return dest_path
     else:
+        with lock:
+            process_pbar.update(1)
         return None
 
 def collate_pdfs(source_dir: str, output_dir: str, max_files: Optional[int] = None) -> None:
@@ -124,17 +128,15 @@ def collate_pdfs(source_dir: str, output_dir: str, max_files: Optional[int] = No
         lock = threading.Lock()
         copied_files = [0]  # Use a list to make it mutable
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [executor.submit(process_pdf, (*args, stop_event, lock, copied_files)) for args in pdf_files]
-            
-            with tqdm(total=len(pdf_files), desc="Copying PDFs", unit="file") as pbar:
+        # Create a progress bar for processing and copying PDFs
+        with tqdm(total=len(pdf_files), desc="Processing and copying PDFs", unit="file") as process_pbar:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [executor.submit(process_pdf, (*args, stop_event, lock, copied_files, process_pbar)) for args in pdf_files]
+                
                 for future in concurrent.futures.as_completed(futures):
                     result = future.result()
                     if result:
-                        tqdm.write(f"Copied ({copied_files[0]}): {result}")
-                    else:
-                        tqdm.write(f"Skipped invalid or empty PDF")
-                    pbar.update(1)
+                        tqdm.write(f"Copied: {result}")
 
         tqdm.write(f"\nProcess complete. Copied {copied_files[0]} files to '{output_dir}'")
 

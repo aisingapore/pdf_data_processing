@@ -1,5 +1,9 @@
 # Quality Filtering 
 
+1. Load everything into a DF 
+2. Run filtering rules using .apply()
+
+
 Pre-OCR - quality filtering, initial dedup (can explore web-pages type later)
 1. write some rule based filters (and perhaps LLM) to get unique names
 2. Filter for PDFs more than 5 pages

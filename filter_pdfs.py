@@ -1,4 +1,5 @@
 import os
+import shutil
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StringType, IntegerType
@@ -74,6 +75,31 @@ def sample_valid_pdfs(pdf_files: list[str], sample_size: int) -> list[str]:
     return sampled_pdfs
 
 sampled_pdfs = sample_valid_pdfs(all_pdf_files, 10)
+
+# Define the destination directory for sampled PDFs
+sampled_pdfs_dir = "/data/users/brandon/ob1-projects/data_processing/sampled_pdfs"
+
+# New function to copy sampled PDFs to a directory
+def copy_sampled_pdfs(sampled_pdfs: list[str], destination_dir: str) -> None:
+    """
+    Copy the sampled PDF files to a specified destination directory.
+
+    Args:
+        sampled_pdfs (list[str]): List of sampled PDF file paths.
+        destination_dir (str): Path to the destination directory.
+
+    Returns:
+        None
+    """
+    os.makedirs(destination_dir, exist_ok=True)
+    for pdf_path in sampled_pdfs:
+        filename = os.path.basename(pdf_path)
+        destination_path = os.path.join(destination_dir, filename)
+        shutil.copy2(pdf_path, destination_path)
+    print(f"Copied {len(sampled_pdfs)} PDFs to {destination_dir}")
+
+# Copy the sampled PDFs to the destination directory
+copy_sampled_pdfs(sampled_pdfs, sampled_pdfs_dir)
 
 # Step 4: Perform OCR on sampled PDFs
 def perform_ocr(pdf_path: str) -> str:

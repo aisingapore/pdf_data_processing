@@ -3,6 +3,13 @@
 1. Load everything into a DF 
 2. Run filtering rules using .apply()
 
+naive filtering:
+1. filter for PDFs > 2 pages
+2. throw away everything but continuous text
+    a. remove titles, newline characters
+    b. use LLM to write filtering logic based on analysis of MPix format (authors, tables, page numbers, exhibits, diagrams, special symbols)
+    c. use Gemini for LID -> throw away anything containing English
+
 
 Pre-OCR - quality filtering, initial dedup (can explore web-pages type later)
 1. write some rule based filters (and perhaps LLM) to get unique names

@@ -67,7 +67,8 @@ def sample_valid_pdfs(pdf_files: list[str], sample_size: int) -> list[str]:
     random.shuffle(pdf_files)
     
     for pdf in pdf_files:
-        if get_pdf_page_count(pdf) > 2:
+        # 500 to fit into Claude context window 
+        if get_pdf_page_count(pdf) > 2 and get_pdf_page_count(pdf) < 500:
             sampled_pdfs.append(pdf)
             if len(sampled_pdfs) == sample_size:
                 break

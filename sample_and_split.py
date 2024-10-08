@@ -1,6 +1,7 @@
 import os
 import shutil
 from typing import List, Tuple
+from tqdm import tqdm
 
 def count_and_split_pdfs(source_dir: str, output_dir: str, max_files_per_subset: int = 10000) -> Tuple[int, List[str]]:
     """
@@ -34,32 +35,35 @@ def count_and_split_pdfs(source_dir: str, output_dir: str, max_files_per_subset:
 
     subset_folders: List[str] = []
 
-    for i in range(num_subsets):
-        subset_name: str = f"subset_{i + 1}"
-        subset_path: str = os.path.join(output_dir, subset_name)
-        
-        # Create the subset folder
-        os.makedirs(subset_path, exist_ok=True)
-        subset_folders.append(subset_path)
+    # Create a TQDM progress bar for the overall process
+    with tqdm(total=total_pdfs, desc="Copying files", unit="file") as pbar:
+        for i in range(num_subsets):
+            subset_name: str = f"subset_{i + 1}"
+            subset_path: str = os.path.join(output_dir, subset_name)
+            
+            # Create the subset folder
+            os.makedirs(subset_path, exist_ok=True)
+            subset_folders.append(subset_path)
 
-        # Calculate the range of files for this subset
-        start_idx: int = i * max_files_per_subset
-        end_idx: int = min((i + 1) * max_files_per_subset, total_pdfs)
+            # Calculate the range of files for this subset
+            start_idx: int = i * max_files_per_subset
+            end_idx: int = min((i + 1) * max_files_per_subset, total_pdfs)
 
-        # Copy PDF files to the subset folder
-        for j in range(start_idx, end_idx):
-            pdf_file: str = pdf_files[j]
-            shutil.copy2(os.path.join(source_dir, pdf_file), os.path.join(subset_path, pdf_file))
+            # Copy PDF files to the subset folder
+            for j in range(start_idx, end_idx):
+                pdf_file: str = pdf_files[j]
+                shutil.copy2(os.path.join(source_dir, pdf_file), os.path.join(subset_path, pdf_file))
+                pbar.update(1)  # Update the progress bar
 
-    print(f"Total PDF files: {total_pdfs}")
+    print(f"\nTotal PDF files: {total_pdfs}")
     print(f"Number of subset folders created: {num_subsets}")
     
     return total_pdfs, subset_folders
 
 if __name__ == "__main__":
-    source_directory: str = "indo_journals_sample"
+    source_directory: str = "indo_journals"
     output_directory: str = "indo_journals_subsets"
-    max_files_per_subset: int = 5
+    max_files_per_subset: int = 10000
 
     try:
         total_count, created_subsets = count_and_split_pdfs(source_directory, output_directory, max_files_per_subset)

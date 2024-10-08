@@ -1,5 +1,13 @@
 # Quality Filtering 
 
+1. load from raw web scrapes in /data using collate_pdfs.py to get all valid PDF journals in indo_journals
+2. sample_and_split.py splits indo_journals into subsets of 10K PDFs, which should average to around 2B LLAMA tokens (based on estimate)
+3. filter_pdfs.py to build initial raw DF filtered using Anthropic prompt, because some Journals actually in English, not useful for Indonesian linguistic adaptation, powered by Spark
+    a. iniital OCR uses pypdf cos uses CPU compute, sufficient for LLM to do initial filtering
+4. use MathPix to get OCR with structured MD tags used for REGEX processing
+5. write REGEX and all data processing to get continuous text with dominantly Indonesian only to train model
+    a. will get some contamination from other languages like English but normal
+
 1. Load everything into a DF 
 2. Run filtering rules using .apply()
 

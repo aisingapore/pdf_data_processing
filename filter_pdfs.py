@@ -1,5 +1,6 @@
 import csv
 import os
+from openai import OpenAI
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf, col, lit, rand
 from pyspark.sql.types import StringType, IntegerType, BooleanType, StructType, StructField
@@ -16,8 +17,8 @@ spark = SparkSession.builder.appName("PDF OCR Pipeline").getOrCreate()
 anthropic_client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 # Define the path to the indo_journals directory
-# indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_sample"
-indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_subsets/subset_1"
+indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_sample"
+# indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_subsets/subset_1"
 
 # Define schema for the initial DataFrame
 pdf_schema = StructType([
@@ -74,14 +75,16 @@ def extract_output(text):
 @udf(returnType=BooleanType())
 def is_relevant_pdf(pdf_text):
     try:
-        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        # client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        MODEL="gpt-4o"
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
         prompt = f"""You are an expert Language Identification Detector. Your task is to determine if the primary content of a research paper is in Indonesian based on its OCR output. This task is crucial for training a Large Language Model to improve its Indonesian language performance.
 
 Here is the OCR output of the research paper:
 
 <ocr_output>
-{pdf_text[:6000]}
+{pdf_text[:15000]}
 </ocr_output>
 
 Carefully analyze the OCR output and determine if the primary content is in Indonesian. Consider the following guidelines:
@@ -106,36 +109,45 @@ Your output should be in the following JSON format:
 
 Remember to provide your reasoning before giving the final answer. Ensure your reasoning is thorough and supports your conclusion."""
 
-        message = client.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            max_tokens=1000,
-            temperature=0,
+        # message = client.messages.create(
+        #     model="claude-3-5-sonnet-20240620",
+        #     max_tokens=1000,
+        #     temperature=0,
+        #     messages=[
+        #         {
+        #             "role": "user",
+        #             "content": [
+        #                 {
+        #                     "type": "text",
+        #                     "text": prompt
+        #                 }
+        #             ]
+        #         }
+        #     ]
+        # )
+        completion = client.chat.completions.create(
+            model=MODEL,
             messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": prompt
-                        }
-                    ]
-                }
-            ]
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"}
         )
 
-        response_content = message.content[0].text
+
+        # response_content = message.content[0].text
+        response_content = completion.choices[0].message.content
         print(f"API Response: {response_content}")
-        output_content = extract_output(response_content)
-        print(f"Extracted output: {output_content}")
+        # output_content = extract_output(response_content)
+        # print(f"Extracted output: {output_content}")
         
         try:
-            cleaned_output = re.sub(r'[\x00-\x1F\x7F-\x9F]', '', output_content)
-            parsed_response = json.loads(cleaned_output)
+            # cleaned_output = re.sub(r'[\x00-\x1F\x7F-\x9F]', '', output_content)
+            parsed_response = json.loads(response_content)
             return parsed_response["answer"]
         except json.JSONDecodeError as e:
             print(f"Error parsing JSON: {e}")
-            print(f"Raw output: {output_content}")
-            return "true" in output_content.lower()
+            print(f"Raw output: {response_content}")
+            return "true" in response_content.lower()
     except Exception as e:
         print(f"Error in is_relevant_pdf: {str(e)}")
         return False
@@ -157,8 +169,8 @@ print(f"After relevance check: {result_df.count()}")
 sampled_df = result_df.orderBy(rand()).limit(5)
 
 # Step 5: Save the resulting DataFrame as a single CSV file
+output_path = "/data/users/brandon/ob1-projects/data_processing/sample_filtered.csv"
 # output_path = "/data/users/brandon/ob1-projects/data_processing/subset_1_filtered.csv"
-output_path = "/data/users/brandon/ob1-projects/data_processing/subset_1_filtered.csv"
 
 # Collect the results to the driver node
 results = result_df.collect()

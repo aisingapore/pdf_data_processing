@@ -16,6 +16,7 @@ spark = SparkSession.builder.appName("PDF OCR Pipeline").getOrCreate()
 anthropic_client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 # Define the path to the indo_journals directory
+# indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_sample"
 indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_subsets/subset_1"
 
 # Define schema for the initial DataFrame
@@ -156,6 +157,7 @@ print(f"After relevance check: {result_df.count()}")
 sampled_df = result_df.orderBy(rand()).limit(5)
 
 # Step 5: Save the resulting DataFrame as a single CSV file
+# output_path = "/data/users/brandon/ob1-projects/data_processing/subset_1_filtered.csv"
 output_path = "/data/users/brandon/ob1-projects/data_processing/subset_1_filtered.csv"
 
 # Collect the results to the driver node

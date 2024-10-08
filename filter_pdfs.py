@@ -18,7 +18,7 @@ anthropic_client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY
 
 # Define the path to the indo_journals directory
 # indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_sample"
-indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_subsets/subset_4"
+indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_subsets/subset_5"
 
 # Define schema for the initial DataFrame
 pdf_schema = StructType([
@@ -170,7 +170,7 @@ print(f"After relevance check: {result_df.count()}")
 
 # Step 5: Save the resulting DataFrame as a single CSV file
 # output_path = "/data/users/brandon/ob1-projects/data_processing/sample_filtered.csv"
-output_path = "/data/users/brandon/ob1-projects/data_processing/subset_4_filtered.csv"
+output_path = "/data/users/brandon/ob1-projects/data_processing/subset_5_filtered.csv"
 
 # Collect the results to the driver node
 results = result_df.collect()

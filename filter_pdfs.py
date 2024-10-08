@@ -16,7 +16,7 @@ spark = SparkSession.builder.appName("PDF OCR Pipeline").getOrCreate()
 anthropic_client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 # Define the path to the indo_journals directory
-indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_sample"
+indo_journals_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_subsets/subset_1"
 
 # Define schema for the initial DataFrame
 pdf_schema = StructType([
@@ -80,7 +80,7 @@ def is_relevant_pdf(pdf_text):
 Here is the OCR output of the research paper:
 
 <ocr_output>
-{pdf_text[:4000]}
+{pdf_text[:6000]}
 </ocr_output>
 
 Carefully analyze the OCR output and determine if the primary content is in Indonesian. Consider the following guidelines:
@@ -156,7 +156,7 @@ print(f"After relevance check: {result_df.count()}")
 sampled_df = result_df.orderBy(rand()).limit(5)
 
 # Step 5: Save the resulting DataFrame as a single CSV file
-output_path = "/data/users/brandon/ob1-projects/data_processing/ocr_results.csv"
+output_path = "/data/users/brandon/ob1-projects/data_processing/subset_1_filtered.csv"
 
 # Collect the results to the driver node
 results = result_df.collect()
@@ -175,28 +175,3 @@ print(f"Total number of rows in the CSV (including header): {row_count + 1}")
 
 # Stop the Spark session
 spark.stop()
-
-
-# output_path = "/data/users/brandon/ob1-projects/data_processing/ocr_results.csv"
-# output_dir = os.path.dirname(output_path)
-# if not os.path.exists(output_dir):
-#     os.makedirs(output_dir)
-# print(f"Output directory: {output_dir}")
-
-# # Use coalesce to ensure a single output file and set specific CSV options
-# sampled_df.coalesce(1).write.option("header", "true") \
-#                           .option("delimiter", ",") \
-#                           .option("quoteAll", "true") \
-#                           .option("escape", "\\") \
-#                           .csv(output_path, mode="overwrite")
-
-# # Rename the generated part file to the desired CSV filename
-# import glob
-# csv_file = glob.glob(f"{output_path}/part-*.csv")[0]
-# os.rename(csv_file, f"{output_path}/ocr_results.csv")
-
-# print(f"Results saved to: {output_path}/ocr_results.csv")
-# print(f"Total number of rows in the CSV: {sampled_df.count()}")
-
-# # Stop the Spark session
-# spark.stop()

@@ -56,13 +56,12 @@ def check_pdf_status(pdf_id):
 # }
 
 options = {
-    "conversion_formats": {"docx": True, "tex.zip": True},
-    "math_inline_delimiters": ["$", "$"],
+    "conversion_formats": {"md": True},
     "rm_spaces": True
 }
 
 # File path
-file_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_sample/8495-Article Text-23908-1-10-20140915.pdf" # TODO: fix pdf titles containing spaces, add a - or something
+file_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals/8495-Article Text-23908-1-10-20140915.pdf" # TODO: fix pdf titles containing spaces, add a - or something
 
 # Submit the request
 initial_response = submit_pdf_request(file_path, options)
@@ -86,10 +85,10 @@ while True:
             "app_id": "aisingapore_cab6cc_cbdab1",
             "app_key": os.environ.get("MATHPIX_API_KEY")
         }
-        url = "https://api.mathpix.com/v3/pdf/" + pdf_id + ".mmd"
+        url = "https://api.mathpix.com/v3/pdf/" + pdf_id + ".md"
         response = requests.get(url, headers=headers)
         # write to MD file in md_completed folder
-        with open("md_completed/" + pdf_id + ".mmd", "w") as f:
+        with open("md_completed/" + pdf_id + ".md", "w") as f:
             f.write(response.text)
 
         break

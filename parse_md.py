@@ -6,9 +6,9 @@ def extract_text(markdown_content):
     
     # Remove title tags but keep the title text
     content = re.sub(r'^#\s*(.*?)\n', r'\1\n', content)
-    content = re.sub(r'^####\s*(.*?)\n', r'\1\n', content)
     
-    # Remove ## symbols but keep the header content
+    # Remove #### symbols but keep the header content
+    content = re.sub(r'^####\s*(.*?)\n', r'\1\n', content, flags=re.MULTILINE)
     content = re.sub(r'^##\s*(.*?)\n', r'\1\n', content, flags=re.MULTILINE)
     
     content = re.sub(r'\*\*.*?\*\*', '', content)
@@ -20,7 +20,9 @@ def extract_text(markdown_content):
     
     # Remove figure captions and table content
     content = re.sub(r'Gambar \d+\..*', '', content)
-    content = re.sub(r'\|.*?\|', '', content)
+    
+    # Remove Markdown tables (improved version)
+    content = re.sub(r'\|[^\n]*\|(\n\|[-:| ]+\|)?(\n\|[^\n]*\|)*', '', content)
     
     # Remove extra whitespace and newlines
     content = re.sub(r'\s+', ' ', content)

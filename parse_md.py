@@ -1,6 +1,6 @@
 import re
 
-def extract_text(markdown_content):
+def extract_meaningful_text(markdown_content):
     # Remove metadata and formatting
     content = re.sub(r'^---.*?---', '', markdown_content, flags=re.DOTALL)
     
@@ -37,7 +37,7 @@ def main():
     with open('/data/users/brandon/ob1-projects/data_processing/md_completed/2024_10_09_cef6a159eb9fe11a20cdg.md', 'r', encoding='utf-8') as file:
         markdown_content = file.read()
     
-    extracted_text = extract_text(markdown_content)
+    extracted_text = extract_meaningful_text(markdown_content)
     
     with open('extracted_text.txt', 'w', encoding='utf-8') as output_file:
         output_file.write(extracted_text)

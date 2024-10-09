@@ -1,11 +1,22 @@
 import re
 
 def clean_markdown(text):
+    # Remove title tags and keep only the content within, regardless of case
+    text = re.sub(r'\\title\{(.*?)\}', r'\1', text, flags=re.DOTALL | re.IGNORECASE)
+    
     # Remove author section
     text = re.sub(r'\\author\{[\s\S]*?\}', '', text)
     
     # Remove English abstract section
-    text = re.sub(r'\\begin\{abstract\}[\s\S]*?\\end\{abstract\}', '', text)
+    text = re.sub(r'\\begin\{abstract\}([\s\S]*?)\\end\{abstract\}', r'ABSTRAK: \1', text)
+    
+    # Remove keywords section, including the "Keywords:" text and possible spaces after the colon
+    text = re.sub(r'Keywords:\s*.*?(?=\n\n|\Z)', '', text, flags=re.DOTALL | re.IGNORECASE)
+    
+    text = re.sub(r'Kata kunci:\s*.*?(?=\n\n|\Z)', '', text, flags=re.DOTALL | re.IGNORECASE)
+    
+    # Remove footnotetext tags and their content
+    text = re.sub(r'\\footnotetext\{[\s\S]*?\}', '', text)
     
     # Remove LaTeX-style commands
     text = re.sub(r'\\[a-zA-Z]+(\{.*?\})*', '', text)

@@ -62,7 +62,7 @@ options = {
 }
 
 # File path
-file_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_sample/8495-Article Text-23908-1-10-20140915.pdf"
+file_path = "/data/users/brandon/ob1-projects/data_processing/indo_journals_sample/8495-Article Text-23908-1-10-20140915.pdf" # TODO: fix pdf titles containing spaces, add a - or something
 
 # Submit the request
 initial_response = submit_pdf_request(file_path, options)

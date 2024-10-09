@@ -24,6 +24,9 @@ def extract_text(markdown_content):
     # Remove Markdown tables (improved version)
     content = re.sub(r'\|[^\n]*\|(\n\|[-:| ]+\|)?(\n\|[^\n]*\|)*', '', content)
     
+    # Remove Keywords section
+    content = re.sub(r'Keywords:.*?(?=\n\n)', '', content, flags=re.DOTALL)
+    
     # Remove extra whitespace and newlines
     content = re.sub(r'\s+', ' ', content)
     content = content.strip()

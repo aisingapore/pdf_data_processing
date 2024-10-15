@@ -18,3 +18,6 @@ sample_filtered_5_true.csv
 marker
 subset_1_final_output.csv
 subset_1_filtered_updated.csv
+*.pem
+subset_3_filtered_updated.csv
+subset_2_filtered_updated.csv
